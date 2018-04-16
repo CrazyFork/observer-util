@@ -99,6 +99,9 @@ const globalObj = Function("return this")();
 
 ## todos
 * WeakMap ? WeakSet? and how it's been implemented.
+  * WeakMap, 的实现可以看: https://github.com/medikoo/es6-weak-map/blob/master/polyfill.js 源码, 基本上就是
+  在作为key的obj上定义储存了weakmap的value值, 所以不会影响作为key的obj的垃圾回收.
+  
 * registerRunningReactionForOperation, queueReactionsForOperation 这两个方法的区别
   * 感觉是读的时候用 `registerRunningReactionForOperation` 写的时候用 `queueReactionsForOperation`, but why ?
   

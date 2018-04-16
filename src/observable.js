@@ -19,8 +19,10 @@ function createObservable (obj) {
   const handlers = builtIns.getHandlers(obj) || baseHandlers
   const observable = new Proxy(obj, handlers)
   // save these to switch between the raw object and the wrapped object with ease later
-  // :todo, would WeakMap create a circlar reference here that causes memory leak?
+  // :todo, 
+  // :Q, would WeakMap create a circlar reference here that causes memory leak?
   // if not, why?
+  // :A, after seeing a WeakMap ployfill, these two line definitely created a circule refs. 
   rawToProxy.set(obj, observable)
   proxyToRaw.set(observable, obj)
   // init basic data structures to save and cleanup later (observable.prop -> reaction) connections
