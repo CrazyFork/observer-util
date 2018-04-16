@@ -68,7 +68,7 @@ function set (target, key, value, receiver) {
   const result = Reflect.set(target, key, value, receiver)
   // emit a warning and do not queue anything when another reaction is queued
   // from an already running reaction
-  if (hasRunningReaction()) {
+  if (hasRunningReaction()) { // :bm
     console.error(
       `Mutating observables in reactions is forbidden. You set ${key} to ${value}.`
     )
@@ -77,6 +77,8 @@ function set (target, key, value, receiver) {
   // do not queue reactions if it is a symbol keyed property
   // or the target of the operation is not the raw receiver
   // (possible because of prototypal inheritance)
+  // :bm, receiver 和 target diverge 的原因有可能是调用 Reflect.set(target, key, value, receiver) 的时候就
+  // 已经 diverge 了.
   if (typeof key === 'symbol' || target !== proxyToRaw.get(receiver)) {
     return result
   }

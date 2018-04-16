@@ -1,6 +1,7 @@
 import { proxyToRaw, rawToProxy } from './internals'
 import { storeObservable } from './store'
 import * as builtIns from './builtIns'
+// :todo, 没有循环引用么, 还是es6 的module system 能自动判断解除循环引用
 import baseHandlers from './handlers'
 
 export function observable (obj = {}) {
@@ -18,6 +19,8 @@ function createObservable (obj) {
   const handlers = builtIns.getHandlers(obj) || baseHandlers
   const observable = new Proxy(obj, handlers)
   // save these to switch between the raw object and the wrapped object with ease later
+  // :todo, would WeakMap create a circlar reference here that causes memory leak?
+  // if not, why?
   rawToProxy.set(obj, observable)
   proxyToRaw.set(observable, obj)
   // init basic data structures to save and cleanup later (observable.prop -> reaction) connections

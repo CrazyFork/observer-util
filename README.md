@@ -1,3 +1,117 @@
+## Overview
+我读这个库的目的就是为了理解mobx是如何运作的(mobx我也读过, 但是代码太复杂了, 就放弃了). 这个库代码量相对来说少些,
+也更加容易我理解里边的精髓.
+
+这个库的工作方式:
+核心的原理就是通过Proxy来instrument obj, 拦截 get, set. 所有 mutation 会触发以 {target, key, } 为ID
+的Set<Reaction> 的执行. 而 Reaction 仅仅是一个函数包装了最核心的 runAsReaction, 又这个函数执行最终的调度.
+
+
+
+```js
+import { observable, observe } from '@nx-js/observer-util'
+// 这段代码将 {num: 0} 转换成了 observable 对象返回了, 底层会将 {num:0} 为key生成一个 value 为 
+// object[key]:Set<Reaction> 的 WeakMap 的值, 
+const counter = observable({ num: 0 })
+// observe 会将传递进来的 function 转换成 Reaction, 然后立即执行一次 Reaction. 会调用 runAsReaction
+// 将当前 Reaction 设置为 runningReaction, 然后在执行到 conter.num 的时候, 会将这个 runningReaction
+// add 到 {num:0} 为 key 的, 值为 object[key]:Set<Reaction> 中, 然后执行 counter.num++, 会调用 Proxy
+// 的 set instrument 方法, 里边会通过 `queueReactionsForOperation` 将所有 {target, key} 为id 的所有
+// Reaction 执行, 包括刚刚注册过的. 执行完之后, 又会调用 counter 的 getter 方法, 再一次将 running reaction
+// 加入到 Reaction<Set> 中, 等待下次mutation.
+// 可以看出, 这个库目前性能上就是在一个Reaction中有多个 observable 对象改变的时候, Reaction 会被执行多次.
+const countLogger = observe(() => console.log(counter.num))
+
+// this calls countLogger and logs 1
+counter.num++
+```
+
+
+
+
+
+
+```
+// file structure
+
+src
+├── builtIns
+│   ├── collections.js      # proxy instrumentations for Set/Map collection
+│   └── index.js            # 
+├── handlers.js             # basic proxy instruments other than collection
+├── index.js                # 
+├── internals.js            # define two mapping object. used for get ref from & to: obj <-> proxied
+├── observable.js           # create a observable instance
+├── observer.js             # observe or unobserve reactions.
+├── reactionRunner.js       # for running reaction & schedule reaction
+└── store.js                # central storage for reactions.
+
+```
+
+
+## store.js
+```
+// central storage for reactions
+connectionStore: Map<obj, object<key, Set<Reaction>>>
+
+
+```
+
+## Glossary
+* `Reaction`
+
+  * type: `Function`
+    ```
+    .cleaners: Array<Set<Reaction>>, 存放反向链接, 到 target[key] 的 reaction set
+    .debugger: (operation)->(), 
+    .scheduler: Set<Reaction> | (Reaction)->(), schedule reaction 
+    .unobserved: boolean, whether or not this reaction is been unobserved.
+    ```
+
+  * defination, defined in observer.js
+
+    ```js
+    const reaction = fn[IS_REACTION]
+      ? fn
+      : function reaction () {
+        return runAsReaction(reaction, fn, this, arguments) // pass this through
+      }
+    ```
+
+* `operation`
+  * type: 
+    ```
+    { 
+      target: any, 目标raw 对象, 没有被 Proxy instrumented 过的
+      key: string, raw 对象的属性值
+      value: any,
+      oldValue: any,
+      type: 'has'| 'add' | 'clear' | 'iterate' | 'set' | 'delete' | 'get' 
+    }
+    ```
+
+## notes
+*
+
+```
+const globalObj = Function("return this")();
+```
+
+## todos
+* WeakMap ? WeakSet? and how it's been implemented.
+* registerRunningReactionForOperation, queueReactionsForOperation 这两个方法的区别
+  * 感觉是读的时候用 `registerRunningReactionForOperation` 写的时候用 `queueReactionsForOperation`, but why ?
+  
+  * `registerRunningReactionForOperation`
+    * 这个方法才会给对应的属性加上 reaction, 
+
+  * `queueReactionsForOperation`:
+    * 这个方法会在属性mutation的时候执行, 主要是执行(默认行为)`registerRunningReactionForOperation`添加的 reaction.
+    * 这意味着所有的监听都是以 mutation push 的.
+
+
+
+
 # The Observer Utility
 
 Transparent reactivity with 100% language coverage. Made with :heart: and ES6 Proxies.

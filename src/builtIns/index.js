@@ -26,10 +26,11 @@ const handlers = new Map([
 ])
 
 export function shouldInstrument ({ constructor }) {
+  // :bm, is builtin 
   const isBuiltIn =
     typeof constructor === 'function' &&
     constructor.name in globalObj &&
-    globalObj[constructor.name] === constructor
+    globalObj[constructor.name] === constructor // :todo, ref to same func, but for what?
   return !isBuiltIn || handlers.has(constructor)
 }
 

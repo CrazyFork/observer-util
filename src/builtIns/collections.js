@@ -7,6 +7,7 @@ import { proxyToRaw } from '../internals'
 const getPrototypeOf = Object.getPrototypeOf
 const hasOwnProperty = Object.prototype.hasOwnProperty
 
+// instrumentations for Set/Map collection
 const instrumentations = {
   has (key) {
     const target = proxyToRaw.get(this)
@@ -108,6 +109,7 @@ const instrumentations = {
 }
 
 export default {
+  // get target[key] value out.
   get (target, key, receiver) {
     // instrument methods and property accessors to be reactive
     target = hasOwnProperty.call(instrumentations, key)

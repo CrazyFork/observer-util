@@ -7,6 +7,16 @@ import {
 let runningReaction
 let isDebugging = false
 
+/**
+ * 
+ * @param {*} reaction , the closure function, see contents in `observer.js`
+ *    properties:
+ *      unobserved: boolean,
+ *      
+ * @param {*} fn , actual reaction function
+ * @param {*} context, fn context
+ * @param {*} args, arguments
+ */
 export function runAsReaction (reaction, fn, context, args) {
   // do not build reactive relations, if the reaction is unobserved
   if (reaction.unobserved) {
@@ -15,7 +25,7 @@ export function runAsReaction (reaction, fn, context, args) {
 
   // release the (obj -> key -> reactions) connections
   // and reset the cleaner connections
-  releaseReaction(reaction)
+  releaseReaction(reaction) // so this reaction is trigger & forget behavior
 
   try {
     // set the reaction as the currently running one
@@ -29,6 +39,7 @@ export function runAsReaction (reaction, fn, context, args) {
 }
 
 // register the currently running reaction to be queued again on obj.key mutations
+// operation: { target, key, type }
 export function registerRunningReactionForOperation (operation) {
   if (runningReaction) {
     debugOperation(runningReaction, operation)
@@ -36,11 +47,13 @@ export function registerRunningReactionForOperation (operation) {
   }
 }
 
+// put operation into reaction.scheduler or invoke them immediately
 export function queueReactionsForOperation (operation) {
   // iterate and queue every reaction, which is triggered by obj.key mutation
   getReactionsForOperation(operation).forEach(queueReaction, operation)
 }
 
+// :bm, reaction: {scheduler: function(Reaction) | Set<Reaction>}
 function queueReaction (reaction) {
   debugOperation(reaction, this)
   // queue the reaction for later execution or run it immediately
